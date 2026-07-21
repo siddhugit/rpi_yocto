@@ -1,0 +1,51 @@
+#!/bin/sh
+
+echo $(basename -- $0)
+
+if [ -z "$ZSH_NAME" ] && [ "`basename -- $0`" = "pi-init-build-env" ]; then
+	echo "Please source the script: 'source ./pi-init-build-env'"
+	exit 1
+fi
+
+if [ -n "$BASH_SOURCE" ]; then
+	PI_ROOT_DIR="`dirname -- $BASH_SOURCE`"
+elif [ -n "$ZSH_NAME" ]; then
+	PI_ROOT_DIR="`dirname -- $0`"
+else
+	PI_ROOT_DIR="."
+fi
+
+PI_ROOT_DIR=`realpath -- $PI_ROOT_DIR`
+
+
+. $PI_ROOT_DIR/poky/oe-init-build-env
+
+# Copy your local.conf
+cp $PI_ROOT_DIR/local.conf ./conf/local.conf
+
+# Add your layers
+PI_LAYERS="meta-mypi \
+meta-openembedded/meta-oe \
+meta-openembedded/meta-python \
+meta-openembedded/meta-multimedia \
+meta-raspberrypi"
+
+for pilayer in $PI_LAYERS; do
+	echo "adding $PI_ROOT_DIR/$pilayer"
+	bitbake-layers add-layer --force $PI_ROOT_DIR/$pilayer
+done
+
+# Clean up temporary local variables
+unset PI_ROOT_DIR
+unset PI_LAYERS
+unset pilayer
+
+echo "run pild or bitbake core-image-base"
+
+pisetup(){
+	git submodule update --init --recursive
+}
+
+pild(){
+	bitbake core-image-base
+}
